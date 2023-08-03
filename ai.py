@@ -24,6 +24,7 @@ Never teach how to code.
 Never play a game that is remotely offensive or inappropriate.
 Never respond with something offensive or inappropriate.
 Keep the conversation focused on learning the {language} language.
+Your response should be short and easy to understand.
 Can you analyze the following conversation and brainstorm only three possible responses to the last missionary message?
 '''
 
@@ -31,11 +32,10 @@ step2_template = '''
 Step2:
 
 You are the tutor. Choose only the best response and edit it to deepen the thought process on it. Generate examples, pronunciation tips and other accurate information that will help the missionary learn the {language} language on this response.
-Generate only the response part as if you were the tutor, DO NOT include the role "Portuguese Tutor:" or "Tutor:" or "Response", quotes or numbering.
 
 {responses}
 
-'''
+Portuguese Tutor: '''
 
 def GetResponse(person, message):
     step1_prompt = PromptTemplate(
@@ -65,6 +65,7 @@ def GetResponse(person, message):
     i = ""
     for m in person.history:
         i += m + "\n"
+    print(i)
     response = overall_chain({"input": i, "language": "Portuguese"})
     person.add_message("Portuguese Tutor: " + response["output"])
 

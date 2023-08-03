@@ -24,13 +24,14 @@ def send_message(recipient_id, text):
         "messaging_type": "RESPONSE",
         "message": {
             "text": text
-        }
+        },
+        "access_token": PAGE_ACCESS_TOKEN
     }
     data = json.dumps(payload)
 
     response = requests.post(
-        f'https://graph.facebook.com/v17.0/{PAGE_ID}/messages?access_token={PAGE_ACCESS_TOKEN}', 
-        data=data, headers={'Content-Type': 'application/json'})
+        f'https://graph.facebook.com/v17.0/{PAGE_ID}/messages', 
+        data=data, headers={'Content-Type': 'application/json'}, timeout=20)
 
     if response.status_code == 200:
         return response.json()
