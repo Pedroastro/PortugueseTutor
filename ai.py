@@ -1,121 +1,71 @@
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
+from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-from langchain.memory import ChatMessageHistory
+from langchain.chains import SequentialChain
 import os
 
 OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
 
-#Creating the system message
-system_message = '''You are a tutor that teaches brazilian portuguese to native english speakers.
-You explain grammatical rules.
-You give the historical background to explanations.
-You are a great communicator and your explanations are easy to understand.
-You also have a great knowledge of slang and expression both in portuguese and in english.
-You explain how things are pronounced (example: X (sheez), milho (mee-lee-yo))
-You can give examples to explain concepts.'''
+step1_template = '''
+Step1:
 
-#Creating the prompt template
-template = '''You are an Assistant to a Portuguese Tutor and your pourpose is to review prompts and decide if it is related to learning the portuguese language or not. 
-If it is related to learning the portuguese language, you should answer "yes".
-If it is not related to learning the portuguese language, you should answer "no".
-If you don't know the answer, you should answer "Yes".
-ONLY ANSWER WITH "yes" OR "no".'''
+The following is a conversation between a missionary that needs to learn the {language} language and you the Portuguese Tutor:
 
-history = ChatMessageHistory()
-history.add_user_message("I want to learn portuguese")
-history.add_ai_message("yes")
-history.add_user_message("Tell me a joke")
-history.add_ai_message("yes")
-history.add_user_message("Tell me a joke")
-history.add_ai_message("yes")
-history.add_user_message("I want to learn how to cook")
-history.add_ai_message("no")
-history.add_user_message("I want to learn how to cook portuguese food")
-history.add_ai_message("no")
-history.add_user_message("How can I say hello in portuguese?")
-history.add_ai_message("yes")
-history.add_user_message("How can I say cat?")
-history.add_ai_message("yes")
-history.add_user_message("How can I say dog in portuguese?")
-history.add_ai_message("yes")
-history.add_user_message("How can I say dog in english?")
-history.add_ai_message("no")
-history.add_user_message("How can I say dog in french?")
-history.add_ai_message("no")
-history.add_user_message("How can I say dog in spanish?")
-history.add_ai_message("no")
-history.add_user_message("How can I say dog in german?")
-history.add_ai_message("no")
-history.add_user_message("How can I say dog in italian?")
-history.add_ai_message("no")
-history.add_user_message("How can I say dog in russian?")
-history.add_ai_message("no")
-history.add_user_message("Teach me how to play the guitar")
-history.add_ai_message("no")
-history.add_user_message("Teach me how to play the guitar in portuguese")
-history.add_ai_message("yes")
-history.add_user_message("Teach me how to play the guitar in english")
-history.add_ai_message("no")
-history.add_user_message("Let's play a game about how to code in portuguese")
-history.add_ai_message("no")
-history.add_user_message("Let's play a game about how to code in english")
-history.add_ai_message("no")
-history.add_user_message("Translate the following sentence to portuguese: I want to learn french")
-history.add_ai_message("yes")
-history.add_user_message("Translate the following sentence to french: I want to learn portuguese")
-history.add_ai_message("no")
-history.add_user_message("Translate dog to portuguese")
-history.add_ai_message("yes")
-history.add_user_message("Translate dog to french")
-history.add_ai_message("no")
-history.add_user_message("Translate dog to english")
-history.add_ai_message("no")
-history.add_user_message("Translate dog to spanish")
-history.add_ai_message("no")
-history.add_user_message("Translate dog to german")
-history.add_ai_message("no")
-history.add_user_message("How can I code a portuguese bot?")
-history.add_ai_message("no")
-history.add_user_message("How can I code a portuguese bot?")
-history.add_ai_message("no")
-history.add_user_message("How can I code?")
-history.add_ai_message("no")
-history.add_user_message("How can I code?")
-history.add_ai_message("no")
-history.add_user_message("How can I code...")
-history.add_ai_message("no")
-history.add_user_message("How can I code a language model for portuguese?")
-history.add_ai_message("no")
+{input}
 
-system_message_prompt = SystemMessagePromptTemplate.from_template(template)
-human_template = "{text}"
-human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
-chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt] + history.messages + [human_message_prompt])
+Analyze the last message from the missionary and brainstorm three possible responses. 
+Your responses should help keep focus on helping the missionary learn the {language} language.
+If his message is not clear, ask him to clarify.
+If his message is not related to the subject, ask him to stay on topic.
+Never respond with ASCII art.
+Never respond with offensive language or jokes.
+Never respond with a message that is not related to the subject.
+Never teach how to code.
+Never play a game that is remotely offensive or inappropriate.
+Never respond with something offensive or inappropriate.
+Keep the conversation focused on learning the {language} language.
+Can you analyze the following conversation and brainstorm only three possible responses to the last missionary message?
+'''
 
-def IsRelatedToLearning(message):
-    llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY)
-    chain = LLMChain(llm=llm, prompt=chat_prompt)
-    response = chain.run(message).strip()
-    if response == "no":
-        return False
-    elif response == "yes":
-        return True
-    else:
-        return True
-    
+step2_template = '''
+Step2:
+
+You are the tutor. Choose only the best response and edit it to deepen the thought process on it. Generate examples, pronunciation tips and other accurate information that will help the missionary learn the {language} language on this response.
+Generate only the response part as if you were the tutor, DO NOT include the role "Portuguese Tutor:" or "Tutor:" or "Response", quotes or numbering.
+
+{responses}
+
+'''
+
 def GetResponse(person, message):
-    LearningRelation = IsRelatedToLearning(message)
-    person.add_user_message(message)
-    if not LearningRelation:
-        res = "I don't know how to answer that. Please ask me something related to learning the portuguese language."
-        person.add_ai_message(res)
-        return res
-    else:
-        llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, max_tokens=256)
-        person.add_system_message(system_message)
-        person.add_user_message(message)
-        prompt = ChatPromptTemplate.from_messages(person.history)
-        res = LLMChain(llm=llm, prompt=prompt).predict()
-        person.add_ai_message(res)
-        return res
+    step1_prompt = PromptTemplate(
+        input_variables=["input","language"],
+        template = step1_template                     
+    )
+    step1_chain = LLMChain(
+        llm=ChatOpenAI(openai_api_key=OPENAI_API_KEY), 
+        prompt=step1_prompt,
+        output_key="responses"
+    )
+    step2_prompt = PromptTemplate(
+        input_variables=["responses","language"],
+        template = step2_template
+    )
+    step2_chain = LLMChain(
+        llm=ChatOpenAI(openai_api_key=OPENAI_API_KEY), 
+        prompt=step2_prompt,
+        output_key="output"
+    )
+    overall_chain = SequentialChain(
+        chains=[step1_chain, step2_chain],
+        input_variables=["input", "language"],
+        output_variables=["output"]
+    )
+    person.add_message("Missionary: " + message)
+    i = ""
+    for m in person.history:
+        i += m + "\n"
+    response = overall_chain({"input": i, "language": "Portuguese"})
+    person.add_message("Portuguese Tutor: " + response["output"])
+
+    return response["output"]
