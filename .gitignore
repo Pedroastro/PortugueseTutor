@@ -1,2 +1,4 @@
 .env
 *.env
+phone_number.csv
+/vectorstore
